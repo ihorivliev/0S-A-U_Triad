@@ -1,5 +1,6 @@
 Script and Output from GAP (A System for Computational Discrete Algebra)
 
+gap>
 gap> # ==============================================================================
 gap> # GAP Script for Verifying L.11-ATS Model Variants
 gap> # System Omega Prime Prime (ATS)
@@ -420,3 +421,25 @@ CDH Results for ⋅ (2 (E⋅E = E)) over +:
   CDH FAIL (2 (E⋅E = E)): (1S(i),E(d),0S(z)) -> LHS=1S(i), RHS=E(d) (All S_norm path)
   CDH FAIL (2 (E⋅E = E)): (1S(i),E(d),1S(i)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
 CDH Results for ⊗ (2 (E⋅E = E)) over ⊕:
+  Hypothesis Condition MET (all S_norm path): Total = 45
+    - Distributivity HELD under these conditions: 33
+    - Distributivity FAILED under these conditions (violates CDH): 12
+  Hypothesis Condition NOT MET (U involved or non-S_norm inputs): Total = 80
+    - Distributivity HELD (U involved): 64
+    - Distributivity FAILED (U involved, NDL member): 16
+  CDH CONCLUSION for ⊗ (2 (E⋅E = E)) over ⊕: FAILS.
+
+--- Summary for Case: 2 (E⋅E = E) ---
+Associativity of ⋅ : true
+Associativity of ⊗ : true
+NDL_prim (⋅ over +): 28 failures / 97 holds
+NDL_dual (⊗ over ⊕): 28 failures / 97 holds
+Conditional Distributivity Hypothesis for ⋅ over +: FAILS (12 violations)
+Conditional Distributivity Hypothesis for ⊗ over ⊕: FAILS (12 violations)
+true
+gap>
+gap> Print("\n--- End of Full Script ---\n");
+
+--- End of Full Script ---
+gap>
+
