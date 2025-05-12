@@ -1,0 +1,422 @@
+Script and Output from GAP (A System for Computational Discrete Algebra)
+
+gap> # ==============================================================================
+gap> # GAP Script for Verifying L.11-ATS Model Variants
+gap> # System Omega Prime Prime (ATS)
+gap> # ==============================================================================
+gap>
+gap> # === 0. Define Element Mapping and Helper for Output ===
+gap> Print("# Defining elements and helper functions...\n");
+# Defining elements and helper functions...
+gap> # Mapping: 1=z(0S), 2=i(1S), 3=p(A), 4=d(E), 5=u(U)
+gap> z := 1;; i := 2;; p := 3;; d := 4;; u := 5;;
+gap>
+gap> S_all_elements := [z, i, p, d, u];;
+gap> S_norm_elements  := [z, i, p, d];;
+gap> U_val := u;; # Define U_val globally and early
+gap>
+gap> elements_str_map := ["0S(z)", "1S(i)", "A(p)", "E(d)", "U(u)"];;
+gap> LookupSymbol := function(int_val)
+>     # Simple error check for LookupSymbol
+>     if int_val < 1 or int_val > Size(elements_str_map) then
+>         return "ErrorInLookup";
+>     fi;
+>     return elements_str_map[int_val];
+> end;;
+gap>
+gap> Print("# Elements defined: 0S=1, 1S=2, A=3, E=4, U=5.\n");
+# Elements defined: 0S=1, 1S=2, A=3, E=4, U=5.
+gap> Print("# S_norm = {0S,1S,A,E} = {1,2,3,4}.\n");
+# S_norm = {0S,1S,A,E} = {1,2,3,4}.
+gap>
+gap> # === Define ¬ Operation (Axiom ATS.1 / Ω''5) ===
+gap> Print("# Defining op_not (¬)...\n");
+# Defining op_not (¬)...
+gap> not_map_list := [ p, d, z, i, u ];; # Results for op_not(1) to op_not(5)
+gap> op_not := function(x_int)
+>     return not_map_list[x_int];
+> end;;
+gap>
+gap> # === Define + on S_norm (Axiom ATS.2 / Ω''1: Klein-4), extended with u-absorption ===
+gap> Print("# Defining op_plus (+)...\n");
+# Defining op_plus (+)...
+gap> plus_table_snorm_data := [
+>     [1, 2, 3, 4], [2, 1, 4, 3], [3, 4, 1, 2], [4, 3, 2, 1]
+> ];;
+gap> op_plus := function(x_int, y_int)
+>     if x_int = U_val or y_int = U_val then return U_val; fi;
+>     return plus_table_snorm_data[x_int][y_int];
+> end;;
+gap>
+gap> # === Define ⊕ via x ⊕ y = ¬(¬x + ¬y) (Axiom ATS.4 / Ω''6.1) ===
+gap> Print("# Defining op_plus_dual (⊕)...\n");
+# Defining op_plus_dual (⊕)...
+gap> op_plus_dual := function(x_int, y_int)
+>     return op_not(op_plus(op_not(x_int), op_not(y_int)));
+> end;;
+gap>
+gap> # === Multiplicative Table Definitions (Global) ===
+gap> # --- Primary Multiplication ⋅ (v1: d⋅d = i, i.e. 4⋅4 = 2) ---
+gap> tbl_multiply_v1_EE_is_1S_data := [
+>     [1, 1, 5, 1, 5], [1, 2, 3, 4, 5], [5, 3, 3, 3, 5], [1, 4, 3, 2, 5], [5, 5, 5, 5, 5]
+> ];;
+gap> # --- Primary Multiplication ⋅ (v2: d⋅d = d, i.e. 4⋅4 = 4) ---
+gap> tbl_multiply_v2_EE_is_E_data := [
+>     [1, 1, 5, 1, 5], [1, 2, 3, 4, 5], [5, 3, 3, 3, 5], [1, 4, 3, 4, 5], [5, 5, 5, 5, 5]
+> ];;
+gap>
+gap> # --- Operation Functions (now refer to pre-defined tables) ---
+gap> op_multiply_v1 := function(x_int, y_int)
+>     return tbl_multiply_v1_EE_is_1S_data[x_int][y_int];
+> end;;
+gap> op_multiply_dual_v1 := function(x_int, y_int)
+>     return op_not(op_multiply_v1(op_not(x_int), op_not(y_int)));
+> end;;
+gap> op_multiply_v2 := function(x_int, y_int)
+>     return tbl_multiply_v2_EE_is_E_data[x_int][y_int];
+> end;;
+gap> op_multiply_dual_v2 := function(x_int, y_int)
+>     return op_not(op_multiply_v2(op_not(x_int), op_not(y_int)));
+> end;;
+gap>
+gap> # === Verification Functions (Generic) ===
+gap> Print("# Defining verification functions...\n");
+# Defining verification functions...
+gap>
+gap> CheckAssociativity := function(op_func, op_symbol_str, elements_list, lookup_func_sym, case_str)
+>     local failures, x_loop, y_loop, z_loop, lhs_intermediate, lhs, rhs_intermediate, rhs, f; # Corrected local declaration
+>     Print("\n--- Case ", case_str, ": Checking Associativity for Operation: ", op_symbol_str, " ---\n");
+>     failures := [];
+>     for x_loop in elements_list do
+>         for y_loop in elements_list do
+>             for z_loop in elements_list do
+>                 lhs_intermediate := op_func(x_loop, y_loop);
+>                 lhs := op_func(lhs_intermediate, z_loop);
+>                 rhs_intermediate := op_func(y_loop, z_loop);
+>                 rhs := op_func(x_loop, rhs_intermediate);
+>                 if lhs <> rhs then
+>                     Add(failures, rec(
+>                         triple_str := [lookup_func_sym(x_loop), lookup_func_sym(y_loop), lookup_func_sym(z_loop)],
+>                         lhs_val_str := lookup_func_sym(lhs),
+>                         rhs_val_str := lookup_func_sym(rhs),
+>                         lhs_intermediate_str := lookup_func_sym(lhs_intermediate),
+>                         rhs_intermediate_str := lookup_func_sym(rhs_intermediate)
+>                     ));
+>                 fi;
+>             od;
+>         od;
+>     od;
+>     if IsEmpty(failures) then
+>         Print("Associativity (x ", op_symbol_str, " y) ", op_symbol_str, " z = x ", op_symbol_str, " (y ", op_symbol_str, " z) holds for all ", Size(elements_list)^3, " triples.\n");
+>     else
+>         Print("Associativity FAILED for ", Size(failures), " out of ", Size(elements_list)^3, " triples:\n");
+>         for f in failures do
+>             Print("  Triple: (", f.triple_str[1], ", ", f.triple_str[2], ", ", f.triple_str[3], ")\n");
+>             Print("    LHS: (", f.triple_str[1], op_symbol_str, f.triple_str[2], ") ", op_symbol_str, " ", f.triple_str[3], " = (", f.lhs_intermediate_str, ") ", op_symbol_str, " ", f.triple_str[3], " = ", f.lhs_val_str, "\n");
+>             Print("    RHS: ", f.triple_str[1], op_symbol_str, " (", f.triple_str[2], op_symbol_str, f.triple_str[3], ") = ", f.triple_str[1], op_symbol_str, " (", f.rhs_intermediate_str, ") = ", f.rhs_val_str, "\n");
+>         od;
+>     fi;
+>     return IsEmpty(failures); # True if PASS
+> end;;
+gap>
+gap> CharacterizeNDL := function(op_mult_func, op_add_func, mult_sym_str, add_sym_str, elements_list, lookup_func_sym, case_str)
+>     local ndl_members, num_distributive, total_triples, x_loop, y_loop, z_loop, sum_yz, lhs, prod_xy, prod_xz, rhs, k, item; # Corrected local
+>     Print("\n--- Case ", case_str, ": Characterizing NDL for ", mult_sym_str, " over ", add_sym_str, " ---\n");
+>     ndl_members := [];
+>     num_distributive := 0;
+>     total_triples := Size(elements_list)^3;
+>     for x_loop in elements_list do for y_loop in elements_list do for z_loop in elements_list do
+>         sum_yz := op_add_func(y_loop, z_loop);
+>         lhs := op_mult_func(x_loop, sum_yz);
+>         prod_xy := op_mult_func(x_loop, y_loop);
+>         prod_xz := op_mult_func(x_loop, z_loop);
+>         rhs := op_add_func(prod_xy, prod_xz);
+>         if lhs <> rhs then
+>             Add(ndl_members, rec(
+>                 triple_str := [lookup_func_sym(x_loop), lookup_func_sym(y_loop), lookup_func_sym(z_loop)],
+>                 lhs_val_str := lookup_func_sym(lhs),
+>                 rhs_val_str := lookup_func_sym(rhs)
+>             ));
+>         else
+>             num_distributive := num_distributive + 1;
+>         fi;
+>     od; od; od;
+>     Print("Distributivity x", mult_sym_str, "(y", add_sym_str, "z) = (x", mult_sym_str, "y)", add_sym_str, "(x", mult_sym_str, "z) holds for ", num_distributive, " out of ", total_triples, " triples.\n");
+>     Print("Distributivity FAILS for ", Size(ndl_members), " triples (Members of NDL):\n");
+>     for k in [1 .. Minimum(5, Size(ndl_members))] do
+>         item := ndl_members[k];
+>         Print("  Triple (", item.triple_str[1], ",", item.triple_str[2], ",", item.triple_str[3], ")");
+>         Print(": LHS=", item.lhs_val_str, ", RHS=", item.rhs_val_str, "\n");
+>     od;
+>     if Size(ndl_members) > 7 and Size(ndl_members) > 5 then Print("  ... (", Size(ndl_members)-7, " more NDL triples) ...\n"); fi;
+>     if Size(ndl_members) > 5 then
+>         for k in [Maximum(6, Size(ndl_members)-1) .. Size(ndl_members)] do
+>             item := ndl_members[k];
+>             Print("  Triple (", item.triple_str[1], ",", item.triple_str[2], ",", item.triple_str[3], ")");
+>             Print(": LHS=", item.lhs_val_str, ", RHS=", item.rhs_val_str, "\n");
+>         od;
+>     fi;
+>     return rec(holds_count := num_distributive, fails_count := Size(ndl_members), ndl_list := ndl_members);
+> end;;
+gap>
+gap> TestCDH := function(op_mult_func, op_add_func, mult_sym_str, add_sym_str, elements_list, s_norm_list_int, u_element_val_local, lookup_func_sym, case_str) # Renamed u_element_val
+>     local x_loop, y_loop, z_loop, sum_yz, lhs, prod_xy, prod_xz, rhs, distributivity_holds, inputs_in_snorm, u_involved_in_lhs_path, u_involved_in_rhs_path, hypothesis_condition_met, hyp_met_dist_held, hyp_met_dist_failed, hyp_not_met_dist_held, hyp_not_met_dist_failed; # Corrected local
+>     Print("\n--- Case ", case_str, ": Testing CDH for ", mult_sym_str, " over ", add_sym_str, " on S_norm ---\n");
+>     hyp_met_dist_held := 0; hyp_met_dist_failed := 0;
+>     hyp_not_met_dist_held := 0; hyp_not_met_dist_failed := 0;
+>
+>     for x_loop in elements_list do for y_loop in elements_list do for z_loop in elements_list do
+>         sum_yz := op_add_func(y_loop,z_loop);
+>         lhs := op_mult_func(x_loop, sum_yz);
+>         prod_xy := op_mult_func(x_loop,y_loop);
+>         prod_xz := op_mult_func(x_loop,z_loop);
+>         rhs := op_add_func(prod_xy, prod_xz);
+>         distributivity_holds := (lhs = rhs);
+>
+>         inputs_in_snorm := (x_loop in s_norm_list_int and y_loop in s_norm_list_int and z_loop in s_norm_list_int);
+>         u_involved_in_lhs_path := (sum_yz = u_element_val_local or lhs = u_element_val_local);
+>         u_involved_in_rhs_path := (prod_xy = u_element_val_local or prod_xz = u_element_val_local or rhs = u_element_val_local);
+>
+>         hypothesis_condition_met := (inputs_in_snorm and
+>                                      not u_involved_in_lhs_path and
+>                                      not u_involved_in_rhs_path);
+>
+>         if hypothesis_condition_met then
+>             if distributivity_holds then
+>                 hyp_met_dist_held := hyp_met_dist_held + 1;
+>             else
+>                 hyp_met_dist_failed := hyp_met_dist_failed + 1;
+>                 Print("  CDH FAIL (", case_str, "): (", lookup_func_sym(x_loop), ",", lookup_func_sym(y_loop), ",", lookup_func_sym(z_loop),
+>                       ") -> LHS=", lookup_func_sym(lhs), ", RHS=", lookup_func_sym(rhs), " (All S_norm path)\n");
+>             fi;
+>         else
+>             if distributivity_holds then
+>                 hyp_not_met_dist_held := hyp_not_met_dist_held + 1;
+>             else
+>                 hyp_not_met_dist_failed := hyp_not_met_dist_failed + 1;
+>             fi;
+>         fi;
+>     od; od; od;
+>     Print("CDH Results for ", mult_sym_str, " (",case_str,") over ", add_sym_str, ":\n");
+>     Print("  Hypothesis Condition MET (all S_norm path): Total = ", hyp_met_dist_held + hyp_met_dist_failed, "\n");
+>     Print("    - Distributivity HELD under these conditions: ", hyp_met_dist_held, "\n");
+>     Print("    - Distributivity FAILED under these conditions (violates CDH): ", hyp_met_dist_failed, "\n");
+>     Print("  Hypothesis Condition NOT MET (U involved or non-S_norm inputs): Total = ", hyp_not_met_dist_held + hyp_not_met_dist_failed, "\n");
+>     Print("    - Distributivity HELD (U involved): ", hyp_not_met_dist_held, "\n");
+>     Print("    - Distributivity FAILED (U involved, NDL member): ", hyp_not_met_dist_failed, "\n");
+>     if hyp_met_dist_failed = 0 and (hyp_met_dist_held > 0 or (hyp_met_dist_held + hyp_met_dist_failed = 0) ) then
+>         Print("  CDH CONCLUSION for ", mult_sym_str, " (",case_str,") over ", add_sym_str, ": APPEARS TO HOLD.\n");
+>     elif (hyp_met_dist_held + hyp_met_dist_failed = 0) then
+>         Print("  CDH CONCLUSION for ", mult_sym_str, " (",case_str,") over ", add_sym_str, ": NOT SUFFICIENTLY TESTED (condition never met for S_norm inputs).\n");
+>     else
+>         Print("  CDH CONCLUSION for ", mult_sym_str, " (",case_str,") over ", add_sym_str, ": FAILS.\n");
+>     fi;
+>     return rec(hyp_met_dist_held := hyp_met_dist_held, hyp_met_dist_failed := hyp_met_dist_failed);
+> end;;
+gap>
+gap> # === Main Execution Function for a Case ===
+gap> Print("# Defining main execution function...\n");
+# Defining main execution function...
+gap> RunChecksForCase := function(case_str_label_func, current_op_multiply_table_data_func, current_op_multiply_func_arg, current_op_multiply_dual_func_arg) # Renamed args
+>     local M_dot_current, multiply_dual_table_current_data, M_otimes_current, assoc_dot_pass, assoc_otimes_pass, ndl_prim_results, ndl_dual_results, hyp_prim_results, hyp_dual_results; # Corrected local
+>     Print("\n\n==================== RUNNING CHECKS FOR CASE: ", case_str_label_func, " ====================\n");
+>
+>     M_dot_current := MagmaByMultiplicationTable(current_op_multiply_table_data_func);
+>     assoc_dot_pass := CheckAssociativity(current_op_multiply_func_arg, "⋅", S_all_elements, LookupSymbol, case_str_label_func);
+>
+>     multiply_dual_table_current_data := List(S_all_elements, x -> List(S_all_elements, y -> current_op_multiply_dual_func_arg(x,y)));
+>     M_otimes_current := MagmaByMultiplicationTable(multiply_dual_table_current_data);
+>     assoc_otimes_pass := CheckAssociativity(current_op_multiply_dual_func_arg, "⊗", S_all_elements, LookupSymbol, case_str_label_func);
+>
+>     ndl_prim_results := CharacterizeNDL(current_op_multiply_func_arg, op_plus, "⋅", "+", S_all_elements, LookupSymbol, case_str_label_func);
+>     ndl_dual_results := CharacterizeNDL(current_op_multiply_dual_func_arg, op_plus_dual, "⊗", "⊕", S_all_elements, LookupSymbol, case_str_label_func);
+>
+>     hyp_prim_results := TestCDH(
+>         current_op_multiply_func_arg, op_plus, "⋅", "+", S_all_elements, S_norm_elements, U_val, LookupSymbol, case_str_label_func
+>     );
+>     hyp_dual_results := TestCDH(
+>         current_op_multiply_dual_func_arg, op_plus_dual, "⊗", "⊕", S_all_elements, S_norm_elements, U_val, LookupSymbol, case_str_label_func
+>     );
+>
+>     Print("\n--- Summary for Case: ", case_str_label_func, " ---\n");
+>     Print("Associativity of ⋅ : ", assoc_dot_pass, "\n");
+>     Print("Associativity of ⊗ : ", assoc_otimes_pass, "\n");
+>     Print("NDL_prim (⋅ over +): ", ndl_prim_results.fails_count, " failures / ", ndl_prim_results.holds_count, " holds\n");
+>     Print("NDL_dual (⊗ over ⊕): ", ndl_dual_results.fails_count, " failures / ", ndl_dual_results.holds_count, " holds\n");
+>
+>     if hyp_prim_results.hyp_met_dist_failed = 0 and (hyp_prim_results.hyp_met_dist_held > 0 or (hyp_prim_results.hyp_met_dist_held + hyp_prim_results.hyp_met_dist_failed = 0)) then
+>         Print("Conditional Distributivity Hypothesis for ⋅ over +: HOLDS\n");
+>     elif (hyp_prim_results.hyp_met_dist_held + hyp_prim_results.hyp_met_dist_failed = 0) then
+>         Print("Conditional Distributivity Hypothesis for ⋅ over +: NOT SUFFICIENTLY TESTED (condition never met)\n");
+>     else
+>         Print("Conditional Distributivity Hypothesis for ⋅ over +: FAILS (", hyp_prim_results.hyp_met_dist_failed, " violations)\n");
+>     fi;
+>
+>     if hyp_dual_results.hyp_met_dist_failed = 0 and (hyp_dual_results.hyp_met_dist_held > 0 or (hyp_dual_results.hyp_met_dist_held + hyp_dual_results.hyp_met_dist_failed = 0)) then
+>         Print("Conditional Distributivity Hypothesis for ⊗ over ⊕: HOLDS\n");
+>     elif (hyp_dual_results.hyp_met_dist_held + hyp_dual_results.hyp_met_dist_failed = 0) then
+>         Print("Conditional Distributivity Hypothesis for ⊗ over ⊕: NOT SUFFICIENTLY TESTED (condition never met)\n");
+>     else
+>         Print("Conditional Distributivity Hypothesis for ⊗ over ⊕: FAILS (", hyp_dual_results.hyp_met_dist_failed, " violations)\n");
+>     fi;
+>     return true; # Indicate function completed
+> end;;
+gap>
+gap>
+gap> # === Execute for Both Cases ===
+gap> Print("# System Omega Prime Prime (Ω'') Computational Full Verification Script\n");
+# System Omega Prime Prime (Ω'') Computational Full Verification Script
+gap> Print("# Elements D_Omega: ", List(S_all_elements, LookupSymbol), "\n");
+# Elements D_Omega: [ "0S(z)", "1S(i)", "A(p)", "E(d)", "U(u)" ]
+gap> Print("# S_norm (for Abelian group +/⊕): ", List(S_norm_elements, LookupSymbol), "\n");
+# S_norm (for Abelian group +/⊕): [ "0S(z)", "1S(i)", "A(p)", "E(d)" ]
+gap>
+gap> # Case 1: E⋅E = 1S
+gap> RunChecksForCase("1 (E⋅E = 1S)", tbl_multiply_v1_EE_is_1S_data, op_multiply_v1, op_multiply_dual_v1);
+
+
+==================== RUNNING CHECKS FOR CASE: 1 (E⋅E = 1S) ====================
+
+--- Case 1 (E⋅E = 1S): Checking Associativity for Operation: ⋅ ---
+Associativity (x ⋅ y) ⋅ z = x ⋅ (y ⋅ z) holds for all 125 triples.
+
+--- Case 1 (E⋅E = 1S): Checking Associativity for Operation: ⊗ ---
+Associativity (x ⊗ y) ⊗ z = x ⊗ (y ⊗ z) holds for all 125 triples.
+
+--- Case 1 (E⋅E = 1S): Characterizing NDL for ⋅ over + ---
+Distributivity x⋅(y+z) = (x⋅y)+(x⋅z) holds for 103 out of 125 triples.
+Distributivity FAILS for 22 triples (Members of NDL):
+  Triple (0S(z),1S(i),A(p)): LHS=0S(z), RHS=U(u)
+  Triple (0S(z),1S(i),E(d)): LHS=U(u), RHS=0S(z)
+  Triple (0S(z),A(p),1S(i)): LHS=0S(z), RHS=U(u)
+  Triple (0S(z),A(p),A(p)): LHS=0S(z), RHS=U(u)
+  Triple (0S(z),A(p),E(d)): LHS=0S(z), RHS=U(u)
+  ... (15 more NDL triples) ...
+  Triple (A(p),E(d),A(p)): LHS=A(p), RHS=0S(z)
+  Triple (A(p),E(d),E(d)): LHS=U(u), RHS=0S(z)
+
+--- Case 1 (E⋅E = 1S): Characterizing NDL for ⊗ over ⊕ ---
+Distributivity x⊗(y⊕z) = (x⊗y)⊕(x⊗z) holds for 103 out of 125 triples.
+Distributivity FAILS for 22 triples (Members of NDL):
+  Triple (0S(z),0S(z),0S(z)): LHS=U(u), RHS=A(p)
+  Triple (0S(z),0S(z),1S(i)): LHS=0S(z), RHS=A(p)
+  Triple (0S(z),0S(z),A(p)): LHS=0S(z), RHS=U(u)
+  Triple (0S(z),0S(z),E(d)): LHS=0S(z), RHS=A(p)
+  Triple (0S(z),1S(i),0S(z)): LHS=0S(z), RHS=A(p)
+  ... (15 more NDL triples) ...
+  Triple (A(p),E(d),0S(z)): LHS=A(p), RHS=U(u)
+  Triple (A(p),E(d),1S(i)): LHS=U(u), RHS=A(p)
+
+--- Case 1 (E⋅E = 1S): Testing CDH for ⋅ over + on S_norm ---
+  CDH FAIL (1 (E⋅E = 1S)): (A(p),1S(i),A(p)) -> LHS=A(p), RHS=0S(z) (All S_norm path)
+  CDH FAIL (1 (E⋅E = 1S)): (A(p),1S(i),E(d)) -> LHS=A(p), RHS=0S(z) (All S_norm path)
+  CDH FAIL (1 (E⋅E = 1S)): (A(p),A(p),1S(i)) -> LHS=A(p), RHS=0S(z) (All S_norm path)
+  CDH FAIL (1 (E⋅E = 1S)): (A(p),A(p),E(d)) -> LHS=A(p), RHS=0S(z) (All S_norm path)
+  CDH FAIL (1 (E⋅E = 1S)): (A(p),E(d),1S(i)) -> LHS=A(p), RHS=0S(z) (All S_norm path)
+  CDH FAIL (1 (E⋅E = 1S)): (A(p),E(d),A(p)) -> LHS=A(p), RHS=0S(z) (All S_norm path)
+CDH Results for ⋅ (1 (E⋅E = 1S)) over +:
+  Hypothesis Condition MET (all S_norm path): Total = 45
+    - Distributivity HELD under these conditions: 39
+    - Distributivity FAILED under these conditions (violates CDH): 6
+  Hypothesis Condition NOT MET (U involved or non-S_norm inputs): Total = 80
+    - Distributivity HELD (U involved): 64
+    - Distributivity FAILED (U involved, NDL member): 16
+  CDH CONCLUSION for ⋅ (1 (E⋅E = 1S)) over +: FAILS.
+
+--- Case 1 (E⋅E = 1S): Testing CDH for ⊗ over ⊕ on S_norm ---
+  CDH FAIL (1 (E⋅E = 1S)): (0S(z),0S(z),1S(i)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
+  CDH FAIL (1 (E⋅E = 1S)): (0S(z),0S(z),E(d)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
+  CDH FAIL (1 (E⋅E = 1S)): (0S(z),1S(i),0S(z)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
+  CDH FAIL (1 (E⋅E = 1S)): (0S(z),1S(i),E(d)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
+  CDH FAIL (1 (E⋅E = 1S)): (0S(z),E(d),0S(z)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
+  CDH FAIL (1 (E⋅E = 1S)): (0S(z),E(d),1S(i)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
+CDH Results for ⊗ (1 (E⋅E = 1S)) over ⊕:
+  Hypothesis Condition MET (all S_norm path): Total = 45
+    - Distributivity HELD under these conditions: 39
+    - Distributivity FAILED under these conditions (violates CDH): 6
+  Hypothesis Condition NOT MET (U involved or non-S_norm inputs): Total = 80
+    - Distributivity HELD (U involved): 64
+    - Distributivity FAILED (U involved, NDL member): 16
+  CDH CONCLUSION for ⊗ (1 (E⋅E = 1S)) over ⊕: FAILS.
+
+--- Summary for Case: 1 (E⋅E = 1S) ---
+Associativity of ⋅ : true
+Associativity of ⊗ : true
+NDL_prim (⋅ over +): 22 failures / 103 holds
+NDL_dual (⊗ over ⊕): 22 failures / 103 holds
+Conditional Distributivity Hypothesis for ⋅ over +: FAILS (6 violations)
+Conditional Distributivity Hypothesis for ⊗ over ⊕: FAILS (6 violations)
+true
+gap>
+gap> # Case 2: E⋅E = E
+gap> RunChecksForCase("2 (E⋅E = E)", tbl_multiply_v2_EE_is_E_data, op_multiply_v2, op_multiply_dual_v2);
+
+
+==================== RUNNING CHECKS FOR CASE: 2 (E⋅E = E) ====================
+
+--- Case 2 (E⋅E = E): Checking Associativity for Operation: ⋅ ---
+Associativity (x ⋅ y) ⋅ z = x ⋅ (y ⋅ z) holds for all 125 triples.
+
+--- Case 2 (E⋅E = E): Checking Associativity for Operation: ⊗ ---
+Associativity (x ⊗ y) ⊗ z = x ⊗ (y ⊗ z) holds for all 125 triples.
+
+--- Case 2 (E⋅E = E): Characterizing NDL for ⋅ over + ---
+Distributivity x⋅(y+z) = (x⋅y)+(x⋅z) holds for 97 out of 125 triples.
+Distributivity FAILS for 28 triples (Members of NDL):
+  Triple (0S(z),1S(i),A(p)): LHS=0S(z), RHS=U(u)
+  Triple (0S(z),1S(i),E(d)): LHS=U(u), RHS=0S(z)
+  Triple (0S(z),A(p),1S(i)): LHS=0S(z), RHS=U(u)
+  Triple (0S(z),A(p),A(p)): LHS=0S(z), RHS=U(u)
+  Triple (0S(z),A(p),E(d)): LHS=0S(z), RHS=U(u)
+  ... (21 more NDL triples) ...
+  Triple (E(d),E(d),1S(i)): LHS=A(p), RHS=0S(z)
+  Triple (E(d),E(d),A(p)): LHS=E(d), RHS=1S(i)
+
+--- Case 2 (E⋅E = E): Characterizing NDL for ⊗ over ⊕ ---
+Distributivity x⊗(y⊕z) = (x⊗y)⊕(x⊗z) holds for 97 out of 125 triples.
+Distributivity FAILS for 28 triples (Members of NDL):
+  Triple (0S(z),0S(z),0S(z)): LHS=U(u), RHS=A(p)
+  Triple (0S(z),0S(z),1S(i)): LHS=0S(z), RHS=A(p)
+  Triple (0S(z),0S(z),A(p)): LHS=0S(z), RHS=U(u)
+  Triple (0S(z),0S(z),E(d)): LHS=0S(z), RHS=A(p)
+  Triple (0S(z),1S(i),0S(z)): LHS=0S(z), RHS=A(p)
+  ... (21 more NDL triples) ...
+  Triple (A(p),E(d),0S(z)): LHS=A(p), RHS=U(u)
+  Triple (A(p),E(d),1S(i)): LHS=U(u), RHS=A(p)
+
+--- Case 2 (E⋅E = E): Testing CDH for ⋅ over + on S_norm ---
+  CDH FAIL (2 (E⋅E = E)): (A(p),1S(i),A(p)) -> LHS=A(p), RHS=0S(z) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (A(p),1S(i),E(d)) -> LHS=A(p), RHS=0S(z) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (A(p),A(p),1S(i)) -> LHS=A(p), RHS=0S(z) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (A(p),A(p),E(d)) -> LHS=A(p), RHS=0S(z) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (A(p),E(d),1S(i)) -> LHS=A(p), RHS=0S(z) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (A(p),E(d),A(p)) -> LHS=A(p), RHS=0S(z) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (E(d),1S(i),A(p)) -> LHS=E(d), RHS=1S(i) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (E(d),1S(i),E(d)) -> LHS=A(p), RHS=0S(z) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (E(d),A(p),1S(i)) -> LHS=E(d), RHS=1S(i) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (E(d),A(p),E(d)) -> LHS=E(d), RHS=1S(i) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (E(d),E(d),1S(i)) -> LHS=A(p), RHS=0S(z) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (E(d),E(d),A(p)) -> LHS=E(d), RHS=1S(i) (All S_norm path)
+CDH Results for ⋅ (2 (E⋅E = E)) over +:
+  Hypothesis Condition MET (all S_norm path): Total = 45
+    - Distributivity HELD under these conditions: 33
+    - Distributivity FAILED under these conditions (violates CDH): 12
+  Hypothesis Condition NOT MET (U involved or non-S_norm inputs): Total = 80
+    - Distributivity HELD (U involved): 64
+    - Distributivity FAILED (U involved, NDL member): 16
+  CDH CONCLUSION for ⋅ (2 (E⋅E = E)) over +: FAILS.
+
+--- Case 2 (E⋅E = E): Testing CDH for ⊗ over ⊕ on S_norm ---
+  CDH FAIL (2 (E⋅E = E)): (0S(z),0S(z),1S(i)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (0S(z),0S(z),E(d)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (0S(z),1S(i),0S(z)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (0S(z),1S(i),E(d)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (0S(z),E(d),0S(z)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (0S(z),E(d),1S(i)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (1S(i),0S(z),1S(i)) -> LHS=1S(i), RHS=E(d) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (1S(i),0S(z),E(d)) -> LHS=1S(i), RHS=E(d) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (1S(i),1S(i),0S(z)) -> LHS=1S(i), RHS=E(d) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (1S(i),1S(i),E(d)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (1S(i),E(d),0S(z)) -> LHS=1S(i), RHS=E(d) (All S_norm path)
+  CDH FAIL (2 (E⋅E = E)): (1S(i),E(d),1S(i)) -> LHS=0S(z), RHS=A(p) (All S_norm path)
+CDH Results for ⊗ (2 (E⋅E = E)) over ⊕:
