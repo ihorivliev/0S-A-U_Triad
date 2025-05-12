@@ -1,0 +1,938 @@
+# ==============================================================================
+# GAP Script for Extended Verification of 5-Element ATS Model Candidates
+# Version 4: Adds detailed tracing for CDH S_norm failures.
+#
+# Tests 5 possible E.E completions and verifies ATS Axioms for associative ones.
+# For associative models, it characterizes Non-Distributive Locus (NDL)
+# and tests Conditional Distributivity Hypothesis (CDH) on S_norm,
+# providing step-by-step calculations for S_norm CDH failures.
+# ==============================================================================
+
+# === 0. Define Element Mapping and Helper for Output ===
+Print("# Defining elements and helper functions...\n");
+# Mapping: 1=0S(z), 2=1S(i), 3=A(p), 4=E(d), 5=U(u)
+val_0S := 1;; val_1S := 2;; val_A := 3;; val_E := 4;; val_U := 5;;
+
+S_ALL_ELEMENTS_CONST := [val_0S, val_1S, val_A, val_E, val_U];;
+S_NORM_ELEMENTS_CONST := [val_0S, val_1S, val_A, val_E];;
+
+elements_str_map := ["0S", "1S", "A", "E", "U"];;
+LookupSymbol := function(int_val)
+    if int_val < 1 or int_val > Size(elements_str_map) then return "ErrIdx"; fi;
+    return elements_str_map[int_val];
+end;
+
+Print("# Elements defined: 0S=1, 1S=2, A=3, E=4, U=5.\n");
+Print("# S_norm = {0S,1S,A,E} = {", List(S_NORM_ELEMENTS_CONST, LookupSymbol), "}.\n");
+Print("# U_val = ", val_U, " (", LookupSymbol(val_U), ").\n");
+
+# === 1. Define Fixed Operations: ¬ (ATS.1), + (ATS.2), ⊕ (ATS.4.1) ===
+Print("\n# Defining op_not (¬), op_plus (+), op_plus_dual (⊕)...\n");
+not_map_list_global := [ val_A, val_E, val_0S, val_1S, val_U ];;
+op_not := function(x_int) return not_map_list_global[x_int]; end;
+
+plus_table_snorm_data_global := [
+    [val_0S,val_1S,val_A,val_E], [val_1S,val_0S,val_E,val_A],
+    [val_A,val_E,val_0S,val_1S], [val_E,val_A,val_1S,val_0S]
+];;
+op_plus := function(x_int, y_int)
+    if x_int = val_U or y_int = val_U then return val_U; fi;
+    return plus_table_snorm_data_global[x_int][y_int];
+end;
+
+op_plus_dual := function(x_int, y_int)
+    if x_int = val_U or y_int = val_U then return val_U; fi;
+    return op_not(op_plus(op_not(x_int), op_not(y_int)));
+end;
+
+# === 2. Define 5 Candidate Primary Multiplication Tables (⋅) ===
+Print("\n# Pre-defining 5 candidate multiplication tables for (⋅)...\n");
+tbl_multiply_EE_is_0S_data := [[val_0S,val_0S,val_U,val_0S,val_U],[val_0S,val_1S,val_A,val_E,val_U],[val_U,val_A,val_A,val_A,val_U],[val_0S,val_E,val_A,val_0S,val_U],[val_U,val_U,val_U,val_U,val_U]];;
+tbl_multiply_EE_is_1S_data := [[val_0S,val_0S,val_U,val_0S,val_U],[val_0S,val_1S,val_A,val_E,val_U],[val_U,val_A,val_A,val_A,val_U],[val_0S,val_E,val_A,val_1S,val_U],[val_U,val_U,val_U,val_U,val_U]];;
+tbl_multiply_EE_is_A_data := [[val_0S,val_0S,val_U,val_0S,val_U],[val_0S,val_1S,val_A,val_E,val_U],[val_U,val_A,val_A,val_A,val_U],[val_0S,val_E,val_A,val_A,val_U],[val_U,val_U,val_U,val_U,val_U]];;
+tbl_multiply_EE_is_E_data := [[val_0S,val_0S,val_U,val_0S,val_U],[val_0S,val_1S,val_A,val_E,val_U],[val_U,val_A,val_A,val_A,val_U],[val_0S,val_E,val_A,val_E,val_U],[val_U,val_U,val_U,val_U,val_U]];;
+tbl_multiply_EE_is_U_data := [[val_0S,val_0S,val_U,val_0S,val_U],[val_0S,val_1S,val_A,val_E,val_U],[val_U,val_A,val_A,val_A,val_U],[val_0S,val_E,val_A,val_U,val_U],[val_U,val_U,val_U,val_U,val_U]];;
+
+all_mult_tables_data_global := [
+    rec(name := "E⋅E = 0S", table_data := tbl_multiply_EE_is_0S_data),
+    rec(name := "E⋅E = 1S (L.11-ATS-v1)", table_data := tbl_multiply_EE_is_1S_data),
+    rec(name := "E⋅E = A",  table_data := tbl_multiply_EE_is_A_data),
+    rec(name := "E⋅E = E (L.11-ATS-v2)",  table_data := tbl_multiply_EE_is_E_data),
+    rec(name := "E⋅E = U",  table_data := tbl_multiply_EE_is_U_data)
+];;
+
+# === 3. Verification Functions (including new TraceCDHFailureDetails) ===
+Print("\n# Defining verification functions...\n");
+
+# ... (Keep CheckCommutativity, CheckIdentity, CheckAbsorber, CheckAssociativity_ATS, CheckClosure, CheckInversesForAbelianGroup_Klein4) ...
+# ... (Keep VerifyATS1_Involution, VerifyATS2_Additive, VerifyATS3_Multiplicative, VerifyATS4_DeMorgan, VerifyATS5_SynthesisInteractions) ...
+# ... (Keep CharacterizeNDL) ...
+# (Pasting them here for completeness from previous correct script)
+CheckCommutativity := function(op_func, op_symbol_str, elements_list, case_name_str_local)
+    local failures, x, y;
+    failures := [];
+    for x in elements_list do for y in elements_list do
+        if op_func(x,y) <> op_func(y,x) then Add(failures, [x,y]); fi;
+    od; od;
+    if IsEmpty(failures) then
+        Print("  PASS: ", op_symbol_str, " is Commutative for all ", Size(elements_list)^2, " pairs.\n"); return true;
+    else
+        Print("  FAIL: ", op_symbol_str, " is NOT Commutative. (Case: ",case_name_str_local,"). Failing pairs (e.g.): (",
+               LookupSymbol(failures[1][1]), op_symbol_str, LookupSymbol(failures[1][2]), ") vs (",
+               LookupSymbol(failures[1][2]), op_symbol_str, LookupSymbol(failures[1][1]), ")\n"); return false;
+    fi;
+end;
+
+CheckIdentity := function(op_func, op_symbol_str, identity_el, elements_list, case_name_str_local)
+    local failures, x;
+    failures := [];
+    for x in elements_list do
+        if op_func(x,identity_el) <> x or op_func(identity_el,x) <> x then Add(failures, x); fi;
+    od;
+    if IsEmpty(failures) then
+        Print("  PASS: ", LookupSymbol(identity_el), " is two-sided identity for ", op_symbol_str, " on tested elements.\n"); return true;
+    else
+        Print("  FAIL: ", LookupSymbol(identity_el), " is NOT two-sided identity for ", op_symbol_str, ". (Case: ",case_name_str_local,"). Failing for element (e.g.): ", LookupSymbol(failures[1]), "\n"); return false;
+    fi;
+end;
+
+CheckAbsorber := function(op_func, op_symbol_str, absorber_el, elements_list, case_name_str_local)
+    local failures, x;
+    failures := [];
+    for x in elements_list do
+        if op_func(x,absorber_el) <> absorber_el or op_func(absorber_el,x) <> absorber_el then Add(failures, x); fi;
+    od;
+    if IsEmpty(failures) then
+        Print("  PASS: ", LookupSymbol(absorber_el), " is two-sided absorber for ", op_symbol_str, " on tested elements.\n"); return true;
+    else
+        Print("  FAIL: ", LookupSymbol(absorber_el), " is NOT two-sided absorber for ", op_symbol_str, ". (Case: ",case_name_str_local,"). Failing for element (e.g.): ", LookupSymbol(failures[1]), "\n"); return false;
+    fi;
+end;
+
+CheckAssociativity_ATS := function(op_func, op_symbol_str, elements_list, case_name_str_local)
+    local failures, x_loop, y_loop, z_loop, lhs_intermediate, lhs, rhs_intermediate, rhs, f;
+    failures := [];
+    for x_loop in elements_list do for y_loop in elements_list do for z_loop in elements_list do
+        lhs_intermediate := op_func(x_loop, y_loop); lhs := op_func(lhs_intermediate, z_loop);
+        rhs_intermediate := op_func(y_loop, z_loop); rhs := op_func(x_loop, rhs_intermediate);
+        if lhs <> rhs then Add(failures, rec(x:=x_loop, y:=y_loop, z:=z_loop, lhs_val:=lhs, rhs_val:=rhs)); fi;
+    od; od; od;
+    if IsEmpty(failures) then
+        Print("  PASS: ", op_symbol_str, " is Associative for all ", Size(elements_list)^3, " triples.\n"); return true;
+    else
+        Print("  FAIL: ", op_symbol_str, " is NOT Associative. (Case: ",case_name_str_local,"). Found ", Size(failures), " failing triples. E.g.:\n");
+        f := failures[1];
+        Print("        ((", LookupSymbol(f.x), op_symbol_str, LookupSymbol(f.y), ")", op_symbol_str, LookupSymbol(f.z), " = ", LookupSymbol(f.lhs_val), ") vs (",
+                   LookupSymbol(f.x), op_symbol_str, "(", LookupSymbol(f.y), op_symbol_str, LookupSymbol(f.z), ") = ", LookupSymbol(f.rhs_val), ")\n");
+        return false;
+    fi;
+end;
+
+CheckClosure := function(op_func, op_symbol_str, subset_elements, universe_of_results, case_name_str_local)
+    local failures, x, y, res;
+    failures := [];
+    for x in subset_elements do for y in subset_elements do
+        res := op_func(x,y);
+        if not (res in universe_of_results) then Add(failures, rec(x_val:=x, y_val:=y, res_val:=res)); fi;
+    od; od;
+    if IsEmpty(failures) then
+        Print("  PASS: Subset {", List(subset_elements, LookupSymbol), "} is closed under ", op_symbol_str, " within {",List(universe_of_results, LookupSymbol),"}.\n"); return true;
+    else
+        Print("  FAIL: Subset {", List(subset_elements, LookupSymbol), "} is NOT closed under ", op_symbol_str, ". (Case: ",case_name_str_local,"). E.g.:\n");
+        Print("        ", LookupSymbol(failures[1].x_val), op_symbol_str, LookupSymbol(failures[1].y_val), " = ", LookupSymbol(failures[1].res_val), " (not in subset)\n");
+        return false;
+    fi;
+end;
+
+CheckInversesForAbelianGroup_Klein4 := function(op_func, op_symbol_str, identity_el, group_elements_list, case_name_str_local)
+    local failures, x;
+    failures := [];
+    for x in group_elements_list do
+        if op_func(x,x) <> identity_el then Add(failures, x); fi;
+    od;
+    if IsEmpty(failures) then
+        Print("  PASS: All elements in {",List(group_elements_list, LookupSymbol),"} are self-inverse (x",op_symbol_str,"x=",LookupSymbol(identity_el),") for ", op_symbol_str, ".\n"); return true;
+    else
+        Print("  FAIL: Not all elements in {",List(group_elements_list, LookupSymbol),"} are self-inverse for ", op_symbol_str, ". (Case: ",case_name_str_local,"). E.g.: ", LookupSymbol(failures[1]),"\n"); return false;
+    fi;
+end;
+
+VerifyATS1_Involution := function(op_n_func, s_all_list_param, s_norm_list_param, case_str_local)
+    local pass_all, x;
+    Print("\n  Verifying ATS.1 (Involution ¬) for Case: ", case_str_local);
+    pass_all := true;
+    for x in s_all_list_param do if op_n_func(op_n_func(x)) <> x then Print("    FAIL ATS.1.1: ¬(¬",LookupSymbol(x),") ≠ ",LookupSymbol(x),"\n"); pass_all := false; break; fi; od;
+    if not pass_all then return false; fi; Print("    PASS ATS.1.1: ¬(¬x)=x.\n");
+
+    if not (op_n_func(val_0S) = val_A and op_n_func(val_A) = val_0S) then Print("    FAIL ATS.1.2\n"); pass_all := false; else Print("    PASS ATS.1.2: ¬0S=A & ¬A=0S.\n"); fi;
+    if not pass_all then return false; fi;
+
+    if not (op_n_func(val_U) = val_U) then Print("    FAIL ATS.1.3\n"); pass_all := false; else Print("    PASS ATS.1.3: ¬U=U.\n"); fi;
+    if not pass_all then return false; fi;
+
+    if not (op_n_func(val_1S) = val_E and op_n_func(val_E) = val_1S) then Print("    FAIL ATS.1.4\n"); pass_all := false; else Print("    PASS ATS.1.4: ¬1S=E & ¬E=1S.\n"); fi;
+    if not pass_all then return false; fi;
+
+    for x in s_norm_list_param do if not (op_n_func(x) in s_norm_list_param) then Print("    FAIL ATS.1.5: S_norm not closed for ", LookupSymbol(x), " -> ", LookupSymbol(op_n_func(x)), "\n"); pass_all := false; break; fi; od;
+    if not pass_all then return false; fi; Print("    PASS ATS.1.5: S_norm closed under ¬.\n");
+    Print("  ATS.1 Verification Result: ", pass_all, "\n");
+    return pass_all;
+end;
+
+VerifyATS2_Additive := function(op_p_func, op_pd_func, s_all_list_param, s_norm_list_param, id_0S_param, id_A_param, u_val_param, case_str_local)
+    local pass_all, group_pass;
+    Print("\n  Verifying ATS.2 (Additive Structures) for Case: ", case_str_local);
+    pass_all := true;
+    Print("  Checking (S_norm, +, 0S) as Abelian Group (Klein-4):");
+    group_pass := CheckClosure(op_p_func, "+", s_norm_list_param, s_norm_list_param, case_str_local) and
+                  CheckAssociativity_ATS(op_p_func, "+", s_norm_list_param, case_str_local) and
+                  CheckIdentity(op_p_func, "+", id_0S_param, s_norm_list_param, case_str_local) and
+                  CheckInversesForAbelianGroup_Klein4(op_p_func, "+", id_0S_param, s_norm_list_param, case_str_local) and
+                  CheckCommutativity(op_p_func, "+", s_norm_list_param, case_str_local);
+    if not group_pass then Print("    FAIL ATS.2.1: (S_norm,+,0S) is not Abelian Group (Klein-4).\n"); pass_all := false; else Print("    PASS ATS.2.1.\n"); fi;
+    if not pass_all then return false; fi;
+
+    Print("  Checking (S_norm, ⊕, A) as Abelian Group (Klein-4):");
+    group_pass := CheckClosure(op_pd_func, "⊕", s_norm_list_param, s_norm_list_param, case_str_local) and
+                  CheckAssociativity_ATS(op_pd_func, "⊕", s_norm_list_param, case_str_local) and
+                  CheckIdentity(op_pd_func, "⊕", id_A_param, s_norm_list_param, case_str_local) and
+                  CheckInversesForAbelianGroup_Klein4(op_pd_func, "⊕", id_A_param, s_norm_list_param, case_str_local) and
+                  CheckCommutativity(op_pd_func, "⊕", s_norm_list_param, case_str_local);
+    if not group_pass then Print("    FAIL ATS.2.2: (S_norm,⊕,A) is not Abelian Group (Klein-4).\n"); pass_all := false; else Print("    PASS ATS.2.2.\n"); fi;
+    if not pass_all then return false; fi;
+
+    Print("  Checking ATS.2.3 (U-Absorption for + and ⊕):");
+    if not (CheckAbsorber(op_p_func, "+", u_val_param, s_all_list_param, case_str_local) and
+            CheckAbsorber(op_pd_func, "⊕", u_val_param, s_all_list_param, case_str_local)) then
+        Print("    FAIL ATS.2.3.\n"); pass_all := false;
+    else Print("    PASS ATS.2.3.\n"); fi;
+    Print("  ATS.2 Verification Result: ", pass_all, "\n");
+    return pass_all;
+end;
+
+VerifyATS3_Multiplicative := function(op_m_func, op_md_func, s_all_list_param, id_1S_param, id_E_param, u_val_param, case_str_local)
+    local pass_all, monoid_pass_prim, monoid_pass_dual;
+    Print("\n  Verifying ATS.3 (Multiplicative Structures) for Case: ", case_str_local);
+    pass_all := true; 
+
+    Print("  Checking (S, ⋅, 1S) as Commutative Monoid:");
+    monoid_pass_prim := CheckCommutativity(op_m_func, "⋅", s_all_list_param, case_str_local) and
+                       CheckAssociativity_ATS(op_m_func, "⋅", s_all_list_param, case_str_local) and
+                       CheckIdentity(op_m_func, "⋅", id_1S_param, s_all_list_param, case_str_local);
+    if not monoid_pass_prim then Print("    FAIL ATS.3.1: (S,⋅,1S) not Commutative Monoid.\n"); pass_all := false; else Print("    PASS ATS.3.1.\n"); fi;
+
+    Print("  Checking (S, ⊗, E) as Commutative Monoid:");
+    monoid_pass_dual := CheckCommutativity(op_md_func, "⊗", s_all_list_param, case_str_local) and
+                       CheckAssociativity_ATS(op_md_func, "⊗", s_all_list_param, case_str_local) and
+                       CheckIdentity(op_md_func, "⊗", id_E_param, s_all_list_param, case_str_local);
+    if not monoid_pass_dual then Print("    FAIL ATS.3.2: (S,⊗,E) not Commutative Monoid.\n"); pass_all := false; else Print("    PASS ATS.3.2.\n"); fi;
+    
+    if not pass_all then 
+        Print("  ATS.3 Verification Result for Monoids: FAILED (at least one monoid check failed).\n");
+        return false; 
+    fi;
+
+    Print("  Checking ATS.3.3 (U-Absorption for ⋅ and ⊗):");
+    if not (CheckAbsorber(op_m_func, "⋅", u_val_param, s_all_list_param, case_str_local) and
+            CheckAbsorber(op_md_func, "⊗", u_val_param, s_all_list_param, case_str_local)) then
+        Print("    FAIL ATS.3.3 (U-Absorption).\n"); pass_all := false;
+    else Print("    PASS ATS.3.3 (U-Absorption).\n"); fi;
+    
+    Print("  ATS.3 Verification Result (Overall): ", pass_all, "\n");
+    return pass_all;
+end;
+
+VerifyATS4_DeMorgan := function(op_p_func, op_pd_func, op_m_func, op_md_func, op_n_func, s_all_list_param, case_str_local)
+    local pass_all, x, y;
+    Print("\n  Verifying ATS.4 (DeMorgan Laws) for Case: ", case_str_local);
+    pass_all := true;
+    for x in s_all_list_param do for y in s_all_list_param do
+        if op_n_func(op_p_func(x,y)) <> op_pd_func(op_n_func(x), op_n_func(y)) then
+            Print("    FAIL ATS.4.1 for (",LookupSymbol(x),",",LookupSymbol(y),")\n"); pass_all:=false; break; fi;
+    od; if not pass_all then return false; fi; od;
+    Print("    PASS ATS.4.1: ¬(x+y)=(¬x)⊕(¬y).\n");
+
+    for x in s_all_list_param do for y in s_all_list_param do
+        if op_n_func(op_m_func(x,y)) <> op_md_func(op_n_func(x), op_n_func(y)) then
+             Print("    FAIL ATS.4.2 for (",LookupSymbol(x),",",LookupSymbol(y),")\n"); pass_all:=false; break; fi;
+    od; if not pass_all then return false; fi; od;
+    Print("    PASS ATS.4.2: ¬(x⋅y)=(¬x)⊗(¬y).\n");
+    Print("  ATS.4 Verification Result: ", pass_all, "\n");
+    return pass_all;
+end;
+
+VerifyATS5_SynthesisInteractions := function(op_m_func, s_norm_list_param, case_str_local)
+    local pass_all, x;
+    Print("\n  Verifying ATS.5 (Synthesis & Specific Interactions for ⋅) for Case: ", case_str_local);
+    pass_all := true;
+
+    if op_m_func(val_0S, val_A) <> val_U then Print("    FAIL ATS.5.1: 0S⋅A ≠ U. Got ", LookupSymbol(op_m_func(val_0S, val_A)),"\n"); pass_all:=false; fi;
+    if not pass_all then return false; fi; Print("    PASS ATS.5.1: 0S⋅A=U.\n");
+
+    for x in s_norm_list_param do
+        if x <> val_A then
+            if op_m_func(val_0S, x) <> val_0S then
+                Print("    FAIL ATS.5.2 for x=",LookupSymbol(x),": 0S⋅",LookupSymbol(x)," ≠ 0S. Got ", LookupSymbol(op_m_func(val_0S,x)),"\n"); pass_all:=false; break;
+            fi;
+        fi;
+    od; if not pass_all then return false; fi; Print("    PASS ATS.5.2: Conditional 0S-annihilation on S_norm.\n");
+
+    for x in s_norm_list_param do
+        if x <> val_0S then
+            if op_m_func(val_A, x) <> val_A then
+                 Print("    FAIL ATS.5.3 for x=",LookupSymbol(x),": A⋅",LookupSymbol(x)," ≠ A. Got ", LookupSymbol(op_m_func(val_A,x)),"\n"); pass_all:=false; break;
+            fi;
+        fi;
+    od; if not pass_all then return false; fi; Print("    PASS ATS.5.3: Conditional A-absorption on S_norm.\n");
+    Print("  ATS.5 Verification Result: ", pass_all, "\n");
+    return pass_all;
+end;
+
+CharacterizeNDL := function(op_mult_func, op_add_func, mult_sym_str, add_sym_str, elements_list_param, lookup_func_sym_param, case_str_local)
+    local ndl_members, num_distributive, total_triples, x_loop, y_loop, z_loop, sum_yz, lhs, prod_xy, prod_xz, rhs, k_loop, item;
+    Print("\n  Characterizing NDL for ", mult_sym_str, " over ", add_sym_str, " (Case: ", case_str_local, ")");
+    ndl_members := []; num_distributive := 0; total_triples := Size(elements_list_param)^3;
+    for x_loop in elements_list_param do for y_loop in elements_list_param do for z_loop in elements_list_param do
+        sum_yz := op_add_func(y_loop, z_loop); lhs := op_mult_func(x_loop, sum_yz);
+        prod_xy := op_mult_func(x_loop, y_loop); prod_xz := op_mult_func(x_loop, z_loop); rhs := op_add_func(prod_xy, prod_xz);
+        if lhs <> rhs then Add(ndl_members, rec(ts:=[lookup_func_sym_param(x_loop),lookup_func_sym_param(y_loop),lookup_func_sym_param(z_loop)], ls:=lookup_func_sym_param(lhs), rs:=lookup_func_sym_param(rhs) ));
+        else num_distributive := num_distributive + 1; fi;
+    od; od; od;
+    Print("    Distributivity x",mult_sym_str,"(y",add_sym_str,"z)=(x",mult_sym_str,"y)",add_sym_str,"(x",mult_sym_str,"z) holds for ",num_distributive,"/",total_triples," triples.\n");
+    if Size(ndl_members) > 0 then
+        Print("    Distributivity FAILS for ", Size(ndl_members), " triples (NDL Members). First few:\n");
+        for k_loop in [1 .. Minimum(5, Size(ndl_members))] do item := ndl_members[k_loop];
+            Print("      (",item.ts[1],",",item.ts[2],",",item.ts[3],"): LHS=",item.ls,", RHS=",item.rs,"\n");
+        od;
+    else Print("    Distributivity HOLDS for all triples (NDL is empty).\n"); fi;
+    return rec(holds_count := num_distributive, fails_count := Size(ndl_members));
+end;
+
+TraceCDHFailureDetails := function(x_val, y_val, z_val, op_m_current_func, op_p_current_func, mult_sym_str, add_sym_str, case_name_str_local)
+    local s1, lhs_final, p1, p2, rhs_final;
+
+    Print("        Detailed Trace for CDH Failing Triple (", LookupSymbol(x_val), ",", LookupSymbol(y_val), ",", LookupSymbol(z_val), ") in Case: ", case_name_str_local, "\n");
+
+    # LHS: x ⋅ (y+z) or x ⊗ (y⊕z)
+    Print("          LHS = ", LookupSymbol(x_val), mult_sym_str, "(", LookupSymbol(y_val), add_sym_str, LookupSymbol(z_val), "):\n");
+    s1 := op_p_current_func(y_val, z_val);
+    Print("            Step 1: ", LookupSymbol(y_val), add_sym_str, LookupSymbol(z_val), " = ", LookupSymbol(s1), " (from op",add_sym_str," table)\n");
+    lhs_final := op_m_current_func(x_val, s1);
+    Print("            Step 2: ", LookupSymbol(x_val), mult_sym_str, LookupSymbol(s1), " = ", LookupSymbol(lhs_final), " (from op",mult_sym_str," table)\n");
+    Print("            Final LHS = ", LookupSymbol(lhs_final), "\n");
+
+    # RHS: (x⋅y)+(x⋅z) or (x⊗y)⊕(x⊗z)
+    Print("          RHS = (", LookupSymbol(x_val), mult_sym_str, LookupSymbol(y_val), ")", add_sym_str, "(", LookupSymbol(x_val), mult_sym_str, LookupSymbol(z_val), "):\n");
+    p1 := op_m_current_func(x_val, y_val);
+    Print("            Step 1: ", LookupSymbol(x_val), mult_sym_str, LookupSymbol(y_val), " = ", LookupSymbol(p1), " (from op",mult_sym_str," table)\n");
+    p2 := op_m_current_func(x_val, z_val);
+    Print("            Step 2: ", LookupSymbol(x_val), mult_sym_str, LookupSymbol(z_val), " = ", LookupSymbol(p2), " (from op",mult_sym_str," table)\n");
+    rhs_final := op_p_current_func(p1, p2);
+    Print("            Step 3: ", LookupSymbol(p1), add_sym_str, LookupSymbol(p2), " = ", LookupSymbol(rhs_final), " (from op",add_sym_str," table)\n");
+    Print("            Final RHS = ", LookupSymbol(rhs_final), "\n");
+
+    if lhs_final <> rhs_final then
+        Print("          CONFIRMED DIVERGENCE: LHS (", LookupSymbol(lhs_final), ") != RHS (", LookupSymbol(rhs_final), ")\n");
+    else
+        Print("          WARNING: Trace called but LHS=RHS for this triple. LHS=",LookupSymbol(lhs_final),", RHS=",LookupSymbol(rhs_final),"\n");
+    fi;
+end;
+
+TestCDH := function(op_mult_func, op_add_func, mult_sym_str, add_sym_str, s_all_list_param, s_norm_list_param, u_val_param, lookup_func_sym_param, case_str_local)
+    local x,y,z, sum_yz,lhs,prod_xy,prod_xz,rhs, dist_holds, inputs_sn, path_sn, met_held,met_failed,not_met_held,not_met_failed, fails_list, k_loop, item_fail, conclusion_str;
+    Print("\n  Testing CDH for ", mult_sym_str, " over ", add_sym_str, " on S_norm (Case: ", case_str_local, ")");
+    met_held:=0; met_failed:=0; not_met_held:=0; not_met_failed:=0; fails_list:=[];
+    for x in s_all_list_param do for y in s_all_list_param do for z in s_all_list_param do
+        sum_yz := op_add_func(y,z); lhs := op_mult_func(x,sum_yz);
+        prod_xy := op_mult_func(x,y); prod_xz := op_mult_func(x,z); rhs := op_add_func(prod_xy,prod_xz);
+        dist_holds := (lhs=rhs);
+        inputs_sn := (x in s_norm_list_param and y in s_norm_list_param and z in s_norm_list_param);
+        path_sn := (inputs_sn and not (sum_yz=u_val_param) and not (lhs=u_val_param) and
+                    not (prod_xy=u_val_param) and not (prod_xz=u_val_param) and not (rhs=u_val_param));
+        if path_sn then
+            if dist_holds then
+                met_held:=met_held+1;
+            else
+                met_failed:=met_failed+1;
+                Add(fails_list,rec(x_val:=x, y_val:=y, z_val:=z, lhs_calc:=lhs, rhs_calc:=rhs)); # Store raw values for trace
+            fi;
+        else # Hypothesis condition not met
+            if dist_holds then not_met_held:=not_met_held+1; else not_met_failed:=not_met_failed+1; fi;
+        fi;
+    od;od;od;
+    Print("    CDH Results (S_norm-closed paths): Total S_norm paths checked = ", met_held+met_failed, "\n");
+    Print("      - Distributivity HELD for S_norm-closed paths: ", met_held, "\n");
+    if met_failed > 0 then
+        Print("      - Distributivity FAILED for S_norm-closed paths (CDH VIOLATIONS): ", met_failed, "\n");
+        Print("        Detailed Traces for first few S_norm CDH Failing Triples:\n");
+        for k_loop in [1..Minimum(met_failed, 5)] do # Iterate through actual failing S_norm path triples
+            item_fail := fails_list[k_loop];
+            TraceCDHFailureDetails(item_fail.x_val, item_fail.y_val, item_fail.z_val, op_mult_func, op_add_func, mult_sym_str, add_sym_str, case_str_local);
+        od;
+    else Print("      - Distributivity FAILED for S_norm-closed paths (CDH VIOLATIONS): 0\n"); fi;
+
+    if met_failed=0 and (met_held>0 or met_held+met_failed=0) then
+        conclusion_str := "APPEARS TO HOLD (or condition never fully met for S_norm inputs)";
+    else
+        conclusion_str := "FAILS";
+    fi;
+    Print("    CDH CONCLUSION: ", conclusion_str, ".\n");
+    return rec(cdh_holds_snorm_closed := met_held, cdh_fails_snorm_closed := met_failed);
+end;
+
+# === 4. Main Execution Function and Loop ===
+Print("\n# === Main Execution: Verifying ATS Axioms for 5 E.E Completions ===\n");
+
+ProcessMultiplicationCase := function(mult_case_rec_func_param)
+    local case_name_func, current_mult_table_data_func, op_m_current_func, op_md_current_func,
+          ats_axioms_pass_func, is_prim_mult_assoc_func, is_dual_mult_assoc_func;
+
+    case_name_func := mult_case_rec_func_param.name;
+    current_mult_table_data_func := mult_case_rec_func_param.table_data;
+
+    Print("\n\n==============================================================================\n");
+    Print("   TESTING MULTIPLICATION CASE: ", case_name_func, "\n");
+    Print("==============================================================================\n");
+
+    op_m_current_func := function(x,y) return current_mult_table_data_func[x][y]; end;
+    op_md_current_func := function(x,y) return op_not(op_m_current_func(op_not(x), op_not(y))); end;
+
+    Print("\n--- Initial Property Checks for (⋅) and Associativity Test ---");
+    if not VerifyATS5_SynthesisInteractions(op_m_current_func, S_NORM_ELEMENTS_CONST, case_name_func) then
+        Print("ERROR: Mult table for '", case_name_func, "' does not embed MO/ATS.5 rules. Aborting this case.\n"); return false;
+    fi;
+    if not CheckCommutativity(op_m_current_func, "⋅", S_ALL_ELEMENTS_CONST, case_name_func) then
+        Print("ERROR: Mult table for '", case_name_func, "' not commutative. Aborting this case.\n"); return false;
+    fi;
+    if not CheckIdentity(op_m_current_func, "⋅", val_1S, S_ALL_ELEMENTS_CONST, case_name_func) then
+        Print("ERROR: 1S not identity for ⋅ in '", case_name_func, "'. Aborting this case.\n"); return false;
+    fi;
+    if not CheckAbsorber(op_m_current_func, "⋅", val_U, S_ALL_ELEMENTS_CONST, case_name_func) then
+        Print("ERROR: U not absorber for ⋅ in '", case_name_func, "'. Aborting this case.\n"); return false;
+    fi;
+
+    is_prim_mult_assoc_func := CheckAssociativity_ATS(op_m_current_func, "⋅", S_ALL_ELEMENTS_CONST, case_name_func);
+
+    if is_prim_mult_assoc_func then
+        Print("\n  PRIMARY MULTIPLICATION ⋅ IS ASSOCIATIVE for case: ", case_name_func, ".\n");
+        Print("  Now checking if derived ⊗ is also associative (as required by ATS.3.2)...\n");
+        is_dual_mult_assoc_func := CheckAssociativity_ATS(op_md_current_func, "⊗", S_ALL_ELEMENTS_CONST, case_name_func);
+
+        if is_dual_mult_assoc_func then
+            Print("\n  DUAL MULTIPLICATION ⊗ IS ALSO ASSOCIATIVE for case: ", case_name_func, ".\n");
+            Print("  Proceeding with full ATS axiom verification for this associative model...\n");
+            ats_axioms_pass_func := true;
+
+            if not VerifyATS1_Involution(op_not, S_ALL_ELEMENTS_CONST, S_NORM_ELEMENTS_CONST, case_name_func) then ats_axioms_pass_func := false; fi;
+            if ats_axioms_pass_func and not VerifyATS2_Additive(op_plus, op_plus_dual, S_ALL_ELEMENTS_CONST, S_NORM_ELEMENTS_CONST, val_0S, val_A, val_U, case_name_func) then ats_axioms_pass_func := false; fi;
+            if ats_axioms_pass_func and not VerifyATS3_Multiplicative(op_m_current_func, op_md_current_func, S_ALL_ELEMENTS_CONST, val_1S, val_E, val_U, case_name_func) then ats_axioms_pass_func := false; fi;
+            if ats_axioms_pass_func and not VerifyATS4_DeMorgan(op_plus, op_plus_dual, op_m_current_func, op_md_current_func, op_not, S_ALL_ELEMENTS_CONST, case_name_func) then ats_axioms_pass_func := false; fi;
+
+            if ats_axioms_pass_func then
+                Print("\n  ALL CORE ATS AXIOMS (ATS.1-ATS.5) PASSED for case: ", case_name_func, "\n");
+                Print("  Now analyzing distributivity (Property ATS.6)...\n");
+                CharacterizeNDL(op_m_current_func, op_plus, "⋅", "+", S_ALL_ELEMENTS_CONST, LookupSymbol, case_name_func);
+                CharacterizeNDL(op_md_current_func, op_plus_dual, "⊗", "⊕", S_ALL_ELEMENTS_CONST, LookupSymbol, case_name_func);
+                TestCDH(op_m_current_func, op_plus, "⋅", "+", S_ALL_ELEMENTS_CONST, S_NORM_ELEMENTS_CONST, val_U, LookupSymbol, case_name_func);
+                TestCDH(op_md_current_func, op_plus_dual, "⊗", "⊕", S_ALL_ELEMENTS_CONST, S_NORM_ELEMENTS_CONST, val_U, LookupSymbol, case_name_func);
+            else
+                Print("\n  CORE ATS AXIOMS FAILED VERIFICATION for case: ", case_name_func, ". Distributivity not analyzed.\n");
+            fi;
+        else
+             Print("\n  DUAL MULTIPLICATION ⊗ IS NOT ASSOCIATIVE for case: ", case_name_func, ". This case does not satisfy ATS.3.2. Further ATS checks aborted.\n");
+        fi;
+    else
+        Print("\n  PRIMARY MULTIPLICATION ⋅ IS NOT ASSOCIATIVE for case: ", case_name_func, ". Further ATS checks aborted.\n");
+    fi;
+    return true; 
+end;
+
+for mult_case_rec_global_loop_var in all_mult_tables_data_global do
+    ProcessMultiplicationCase(mult_case_rec_global_loop_var);
+od;
+
+Print("\n\n--- End of All Tests ---\n");
+
+
+
+
+here are next results from GAP: "gap> Read("C:\\Users\\Ihor Ivliev\\Downloads\\CDHFailure.g");
+# Defining elements and helper functions...
+# Elements defined: 0S=1, 1S=2, A=3, E=4, U=5.
+# S_norm = {0S,1S,A,E} = {[ "0S", "1S", "A", "E" ]}.
+# U_val = 5 (U).
+
+# Defining op_not (¬), op_plus (+), op_plus_dual (⊕)...
+
+# Pre-defining 5 candidate multiplication tables for (⋅)...
+
+# Defining verification functions...
+
+# === Main Execution: Verifying ATS Axioms for 5 E.E Completions ===
+
+
+==============================================================================
+   TESTING MULTIPLICATION CASE: E⋅E = 0S
+==============================================================================
+
+--- Initial Property Checks for (⋅) and Associativity Test ---
+  Verifying ATS.5 (Synthesis & Specific Interactions for ⋅) for Case: E⋅E = 0S    PASS ATS.5.1: 0S⋅A=U.
+    PASS ATS.5.2: Conditional 0S-annihilation on S_norm.
+    PASS ATS.5.3: Conditional A-absorption on S_norm.
+  ATS.5 Verification Result: true
+  PASS: ⋅ is Commutative for all 25 pairs.
+  PASS: 1S is two-sided identity for ⋅ on tested elements.
+  PASS: U is two-sided absorber for ⋅ on tested elements.
+  FAIL: ⋅ is NOT Associative. (Case: E⋅E = 0S). Found 2 failing triples. E.g.:
+        ((A⋅E)⋅E = A) vs (A⋅(E⋅E) = U)
+
+  PRIMARY MULTIPLICATION ⋅ IS NOT ASSOCIATIVE for case: E⋅E = 0S. Further ATS checks aborted.
+
+
+==============================================================================
+   TESTING MULTIPLICATION CASE: E⋅E = 1S (L.11-ATS-v1)
+==============================================================================
+
+--- Initial Property Checks for (⋅) and Associativity Test ---
+  Verifying ATS.5 (Synthesis & Specific Interactions for ⋅) for Case: E⋅E = 1S (L.11-ATS-v1)    PASS ATS.5.1: 0S⋅A=U.
+    PASS ATS.5.2: Conditional 0S-annihilation on S_norm.
+    PASS ATS.5.3: Conditional A-absorption on S_norm.
+  ATS.5 Verification Result: true
+  PASS: ⋅ is Commutative for all 25 pairs.
+  PASS: 1S is two-sided identity for ⋅ on tested elements.
+  PASS: U is two-sided absorber for ⋅ on tested elements.
+  PASS: ⋅ is Associative for all 125 triples.
+
+  PRIMARY MULTIPLICATION ⋅ IS ASSOCIATIVE for case: E⋅E = 1S (L.11-ATS-v1).
+  Now checking if derived ⊗ is also associative (as required by ATS.3.2)...
+  PASS: ⊗ is Associative for all 125 triples.
+
+  DUAL MULTIPLICATION ⊗ IS ALSO ASSOCIATIVE for case: E⋅E = 1S (L.11-ATS-v1).
+  Proceeding with full ATS axiom verification for this associative model...
+
+  Verifying ATS.1 (Involution ¬) for Case: E⋅E = 1S (L.11-ATS-v1)    PASS ATS.1.1: ¬(¬x)=x.
+    PASS ATS.1.2: ¬0S=A & ¬A=0S.
+    PASS ATS.1.3: ¬U=U.
+    PASS ATS.1.4: ¬1S=E & ¬E=1S.
+    PASS ATS.1.5: S_norm closed under ¬.
+  ATS.1 Verification Result: true
+
+  Verifying ATS.2 (Additive Structures) for Case: E⋅E = 1S (L.11-ATS-v1)  Checking (S_norm, +, 0S) as Abelian Group (Klein-4):  PASS: Subset {[ "0S", "1S", "A", "E" ]} is closed under + within {
+[ "0S", "1S", "A", "E" ]}.
+  PASS: + is Associative for all 64 triples.
+  PASS: 0S is two-sided identity for + on tested elements.
+  PASS: All elements in {[ "0S", "1S", "A", "E" ]} are self-inverse (x+x=0S) for +.
+  PASS: + is Commutative for all 16 pairs.
+    PASS ATS.2.1.
+  Checking (S_norm, ⊕, A) as Abelian Group (Klein-4):  PASS: Subset {[ "0S", "1S", "A", "E" ]} is closed under ⊕ within {[ "0S", "1S", "A", "E" ]}.
+  PASS: ⊕ is Associative for all 64 triples.
+  PASS: A is two-sided identity for ⊕ on tested elements.
+  PASS: All elements in {[ "0S", "1S", "A", "E" ]} are self-inverse (x⊕x=A) for ⊕.
+  PASS: ⊕ is Commutative for all 16 pairs.
+    PASS ATS.2.2.
+  Checking ATS.2.3 (U-Absorption for + and ⊕):  PASS: U is two-sided absorber for + on tested elements.
+  PASS: U is two-sided absorber for ⊕ on tested elements.
+    PASS ATS.2.3.
+  ATS.2 Verification Result: true
+
+  Verifying ATS.3 (Multiplicative Structures) for Case: E⋅E = 1S (L.11-ATS-v1)  Checking (S, ⋅, 1S) as Commutative Monoid:  PASS: ⋅ is Commutative for all 25 pairs.
+  PASS: ⋅ is Associative for all 125 triples.
+  PASS: 1S is two-sided identity for ⋅ on tested elements.
+    PASS ATS.3.1.
+  Checking (S, ⊗, E) as Commutative Monoid:  PASS: ⊗ is Commutative for all 25 pairs.
+  PASS: ⊗ is Associative for all 125 triples.
+  PASS: E is two-sided identity for ⊗ on tested elements.
+    PASS ATS.3.2.
+  Checking ATS.3.3 (U-Absorption for ⋅ and ⊗):  PASS: U is two-sided absorber for ⋅ on tested elements.
+  PASS: U is two-sided absorber for ⊗ on tested elements.
+    PASS ATS.3.3 (U-Absorption).
+  ATS.3 Verification Result (Overall): true
+
+  Verifying ATS.4 (DeMorgan Laws) for Case: E⋅E = 1S (L.11-ATS-v1)    PASS ATS.4.1: ¬(x+y)=(¬x)⊕(¬y).
+    PASS ATS.4.2: ¬(x⋅y)=(¬x)⊗(¬y).
+  ATS.4 Verification Result: true
+
+  ALL CORE ATS AXIOMS (ATS.1-ATS.5) PASSED for case: E⋅E = 1S (L.11-ATS-v1)
+  Now analyzing distributivity (Property ATS.6)...
+
+  Characterizing NDL for ⋅ over + (Case: E⋅E = 1S (L.11-ATS-v1))    Distributivity x⋅(y+z)=(x⋅y)+(x⋅z) holds for 103/125 triples.
+    Distributivity FAILS for 22 triples (NDL Members). First few:
+      (0S,1S,A): LHS=0S, RHS=U
+      (0S,1S,E): LHS=U, RHS=0S
+      (0S,A,1S): LHS=0S, RHS=U
+      (0S,A,A): LHS=0S, RHS=U
+      (0S,A,E): LHS=0S, RHS=U
+
+  Characterizing NDL for ⊗ over ⊕ (Case: E⋅E = 1S (L.11-ATS-v1))    Distributivity x⊗(y⊕z)=(x⊗y)⊕(x⊗z) holds for 103/125 triples.
+    Distributivity FAILS for 22 triples (NDL Members). First few:
+      (0S,0S,0S): LHS=U, RHS=A
+      (0S,0S,1S): LHS=0S, RHS=A
+      (0S,0S,A): LHS=0S, RHS=U
+      (0S,0S,E): LHS=0S, RHS=A
+      (0S,1S,0S): LHS=0S, RHS=A
+
+  Testing CDH for ⋅ over + on S_norm (Case: E⋅E = 1S (L.11-ATS-v1))    CDH Results (S_norm-closed paths): Total S_norm paths checked = 45
+      - Distributivity HELD for S_norm-closed paths: 39
+      - Distributivity FAILED for S_norm-closed paths (CDH VIOLATIONS): 6
+        Detailed Traces for first few S_norm CDH Failing Triples:
+        Detailed Trace for CDH Failing Triple (A,1S,A) in Case: E⋅E = 1S (L.11-ATS-v1)
+          LHS = A⋅(1S+A):
+            Step 1: 1S+A = E (from op+ table)
+            Step 2: A⋅E = A (from op⋅ table)
+            Final LHS = A
+          RHS = (A⋅1S)+(A⋅A):
+            Step 1: A⋅1S = A (from op⋅ table)
+            Step 2: A⋅A = A (from op⋅ table)
+            Step 3: A+A = 0S (from op+ table)
+            Final RHS = 0S
+          CONFIRMED DIVERGENCE: LHS (A) != RHS (0S)
+        Detailed Trace for CDH Failing Triple (A,1S,E) in Case: E⋅E = 1S (L.11-ATS-v1)
+          LHS = A⋅(1S+E):
+            Step 1: 1S+E = A (from op+ table)
+            Step 2: A⋅A = A (from op⋅ table)
+            Final LHS = A
+          RHS = (A⋅1S)+(A⋅E):
+            Step 1: A⋅1S = A (from op⋅ table)
+            Step 2: A⋅E = A (from op⋅ table)
+            Step 3: A+A = 0S (from op+ table)
+            Final RHS = 0S
+          CONFIRMED DIVERGENCE: LHS (A) != RHS (0S)
+        Detailed Trace for CDH Failing Triple (A,A,1S) in Case: E⋅E = 1S (L.11-ATS-v1)
+          LHS = A⋅(A+1S):
+            Step 1: A+1S = E (from op+ table)
+            Step 2: A⋅E = A (from op⋅ table)
+            Final LHS = A
+          RHS = (A⋅A)+(A⋅1S):
+            Step 1: A⋅A = A (from op⋅ table)
+            Step 2: A⋅1S = A (from op⋅ table)
+            Step 3: A+A = 0S (from op+ table)
+            Final RHS = 0S
+          CONFIRMED DIVERGENCE: LHS (A) != RHS (0S)
+        Detailed Trace for CDH Failing Triple (A,A,E) in Case: E⋅E = 1S (L.11-ATS-v1)
+          LHS = A⋅(A+E):
+            Step 1: A+E = 1S (from op+ table)
+            Step 2: A⋅1S = A (from op⋅ table)
+            Final LHS = A
+          RHS = (A⋅A)+(A⋅E):
+            Step 1: A⋅A = A (from op⋅ table)
+            Step 2: A⋅E = A (from op⋅ table)
+            Step 3: A+A = 0S (from op+ table)
+            Final RHS = 0S
+          CONFIRMED DIVERGENCE: LHS (A) != RHS (0S)
+        Detailed Trace for CDH Failing Triple (A,E,1S) in Case: E⋅E = 1S (L.11-ATS-v1)
+          LHS = A⋅(E+1S):
+            Step 1: E+1S = A (from op+ table)
+            Step 2: A⋅A = A (from op⋅ table)
+            Final LHS = A
+          RHS = (A⋅E)+(A⋅1S):
+            Step 1: A⋅E = A (from op⋅ table)
+            Step 2: A⋅1S = A (from op⋅ table)
+            Step 3: A+A = 0S (from op+ table)
+            Final RHS = 0S
+          CONFIRMED DIVERGENCE: LHS (A) != RHS (0S)
+    CDH CONCLUSION: FAILS.
+
+  Testing CDH for ⊗ over ⊕ on S_norm (Case: E⋅E = 1S (L.11-ATS-v1))    CDH Results (S_norm-closed paths): Total S_norm paths checked = 45
+      - Distributivity HELD for S_norm-closed paths: 39
+      - Distributivity FAILED for S_norm-closed paths (CDH VIOLATIONS): 6
+        Detailed Traces for first few S_norm CDH Failing Triples:
+        Detailed Trace for CDH Failing Triple (0S,0S,1S) in Case: E⋅E = 1S (L.11-ATS-v1)
+          LHS = 0S⊗(0S⊕1S):
+            Step 1: 0S⊕1S = E (from op⊕ table)
+            Step 2: 0S⊗E = 0S (from op⊗ table)
+            Final LHS = 0S
+          RHS = (0S⊗0S)⊕(0S⊗1S):
+            Step 1: 0S⊗0S = 0S (from op⊗ table)
+            Step 2: 0S⊗1S = 0S (from op⊗ table)
+            Step 3: 0S⊕0S = A (from op⊕ table)
+            Final RHS = A
+          CONFIRMED DIVERGENCE: LHS (0S) != RHS (A)
+        Detailed Trace for CDH Failing Triple (0S,0S,E) in Case: E⋅E = 1S (L.11-ATS-v1)
+          LHS = 0S⊗(0S⊕E):
+            Step 1: 0S⊕E = 1S (from op⊕ table)
+            Step 2: 0S⊗1S = 0S (from op⊗ table)
+            Final LHS = 0S
+          RHS = (0S⊗0S)⊕(0S⊗E):
+            Step 1: 0S⊗0S = 0S (from op⊗ table)
+            Step 2: 0S⊗E = 0S (from op⊗ table)
+            Step 3: 0S⊕0S = A (from op⊕ table)
+            Final RHS = A
+          CONFIRMED DIVERGENCE: LHS (0S) != RHS (A)
+        Detailed Trace for CDH Failing Triple (0S,1S,0S) in Case: E⋅E = 1S (L.11-ATS-v1)
+          LHS = 0S⊗(1S⊕0S):
+            Step 1: 1S⊕0S = E (from op⊕ table)
+            Step 2: 0S⊗E = 0S (from op⊗ table)
+            Final LHS = 0S
+          RHS = (0S⊗1S)⊕(0S⊗0S):
+            Step 1: 0S⊗1S = 0S (from op⊗ table)
+            Step 2: 0S⊗0S = 0S (from op⊗ table)
+            Step 3: 0S⊕0S = A (from op⊕ table)
+            Final RHS = A
+          CONFIRMED DIVERGENCE: LHS (0S) != RHS (A)
+        Detailed Trace for CDH Failing Triple (0S,1S,E) in Case: E⋅E = 1S (L.11-ATS-v1)
+          LHS = 0S⊗(1S⊕E):
+            Step 1: 1S⊕E = 0S (from op⊕ table)
+            Step 2: 0S⊗0S = 0S (from op⊗ table)
+            Final LHS = 0S
+          RHS = (0S⊗1S)⊕(0S⊗E):
+            Step 1: 0S⊗1S = 0S (from op⊗ table)
+            Step 2: 0S⊗E = 0S (from op⊗ table)
+            Step 3: 0S⊕0S = A (from op⊕ table)
+            Final RHS = A
+          CONFIRMED DIVERGENCE: LHS (0S) != RHS (A)
+        Detailed Trace for CDH Failing Triple (0S,E,0S) in Case: E⋅E = 1S (L.11-ATS-v1)
+          LHS = 0S⊗(E⊕0S):
+            Step 1: E⊕0S = 1S (from op⊕ table)
+            Step 2: 0S⊗1S = 0S (from op⊗ table)
+            Final LHS = 0S
+          RHS = (0S⊗E)⊕(0S⊗0S):
+            Step 1: 0S⊗E = 0S (from op⊗ table)
+            Step 2: 0S⊗0S = 0S (from op⊗ table)
+            Step 3: 0S⊕0S = A (from op⊕ table)
+            Final RHS = A
+          CONFIRMED DIVERGENCE: LHS (0S) != RHS (A)
+    CDH CONCLUSION: FAILS.
+
+
+==============================================================================
+   TESTING MULTIPLICATION CASE: E⋅E = A
+==============================================================================
+
+--- Initial Property Checks for (⋅) and Associativity Test ---
+  Verifying ATS.5 (Synthesis & Specific Interactions for ⋅) for Case: E⋅E = A    PASS ATS.5.1: 0S⋅A=U.
+    PASS ATS.5.2: Conditional 0S-annihilation on S_norm.
+    PASS ATS.5.3: Conditional A-absorption on S_norm.
+  ATS.5 Verification Result: true
+  PASS: ⋅ is Commutative for all 25 pairs.
+  PASS: 1S is two-sided identity for ⋅ on tested elements.
+  PASS: U is two-sided absorber for ⋅ on tested elements.
+  FAIL: ⋅ is NOT Associative. (Case: E⋅E = A). Found 2 failing triples. E.g.:
+        ((0S⋅E)⋅E = 0S) vs (0S⋅(E⋅E) = U)
+
+  PRIMARY MULTIPLICATION ⋅ IS NOT ASSOCIATIVE for case: E⋅E = A. Further ATS checks aborted.
+
+
+==============================================================================
+   TESTING MULTIPLICATION CASE: E⋅E = E (L.11-ATS-v2)
+==============================================================================
+
+--- Initial Property Checks for (⋅) and Associativity Test ---
+  Verifying ATS.5 (Synthesis & Specific Interactions for ⋅) for Case: E⋅E = E (L.11-ATS-v2)    PASS ATS.5.1: 0S⋅A=U.
+    PASS ATS.5.2: Conditional 0S-annihilation on S_norm.
+    PASS ATS.5.3: Conditional A-absorption on S_norm.
+  ATS.5 Verification Result: true
+  PASS: ⋅ is Commutative for all 25 pairs.
+  PASS: 1S is two-sided identity for ⋅ on tested elements.
+  PASS: U is two-sided absorber for ⋅ on tested elements.
+  PASS: ⋅ is Associative for all 125 triples.
+
+  PRIMARY MULTIPLICATION ⋅ IS ASSOCIATIVE for case: E⋅E = E (L.11-ATS-v2).
+  Now checking if derived ⊗ is also associative (as required by ATS.3.2)...
+  PASS: ⊗ is Associative for all 125 triples.
+
+  DUAL MULTIPLICATION ⊗ IS ALSO ASSOCIATIVE for case: E⋅E = E (L.11-ATS-v2).
+  Proceeding with full ATS axiom verification for this associative model...
+
+  Verifying ATS.1 (Involution ¬) for Case: E⋅E = E (L.11-ATS-v2)    PASS ATS.1.1: ¬(¬x)=x.
+    PASS ATS.1.2: ¬0S=A & ¬A=0S.
+    PASS ATS.1.3: ¬U=U.
+    PASS ATS.1.4: ¬1S=E & ¬E=1S.
+    PASS ATS.1.5: S_norm closed under ¬.
+  ATS.1 Verification Result: true
+
+  Verifying ATS.2 (Additive Structures) for Case: E⋅E = E (L.11-ATS-v2)  Checking (S_norm, +, 0S) as Abelian Group (Klein-4):  PASS: Subset {[ "0S", "1S", "A", "E" ]} is closed under + within {
+[ "0S", "1S", "A", "E" ]}.
+  PASS: + is Associative for all 64 triples.
+  PASS: 0S is two-sided identity for + on tested elements.
+  PASS: All elements in {[ "0S", "1S", "A", "E" ]} are self-inverse (x+x=0S) for +.
+  PASS: + is Commutative for all 16 pairs.
+    PASS ATS.2.1.
+  Checking (S_norm, ⊕, A) as Abelian Group (Klein-4):  PASS: Subset {[ "0S", "1S", "A", "E" ]} is closed under ⊕ within {[ "0S", "1S", "A", "E" ]}.
+  PASS: ⊕ is Associative for all 64 triples.
+  PASS: A is two-sided identity for ⊕ on tested elements.
+  PASS: All elements in {[ "0S", "1S", "A", "E" ]} are self-inverse (x⊕x=A) for ⊕.
+  PASS: ⊕ is Commutative for all 16 pairs.
+    PASS ATS.2.2.
+  Checking ATS.2.3 (U-Absorption for + and ⊕):  PASS: U is two-sided absorber for + on tested elements.
+  PASS: U is two-sided absorber for ⊕ on tested elements.
+    PASS ATS.2.3.
+  ATS.2 Verification Result: true
+
+  Verifying ATS.3 (Multiplicative Structures) for Case: E⋅E = E (L.11-ATS-v2)  Checking (S, ⋅, 1S) as Commutative Monoid:  PASS: ⋅ is Commutative for all 25 pairs.
+  PASS: ⋅ is Associative for all 125 triples.
+  PASS: 1S is two-sided identity for ⋅ on tested elements.
+    PASS ATS.3.1.
+  Checking (S, ⊗, E) as Commutative Monoid:  PASS: ⊗ is Commutative for all 25 pairs.
+  PASS: ⊗ is Associative for all 125 triples.
+  PASS: E is two-sided identity for ⊗ on tested elements.
+    PASS ATS.3.2.
+  Checking ATS.3.3 (U-Absorption for ⋅ and ⊗):  PASS: U is two-sided absorber for ⋅ on tested elements.
+  PASS: U is two-sided absorber for ⊗ on tested elements.
+    PASS ATS.3.3 (U-Absorption).
+  ATS.3 Verification Result (Overall): true
+
+  Verifying ATS.4 (DeMorgan Laws) for Case: E⋅E = E (L.11-ATS-v2)    PASS ATS.4.1: ¬(x+y)=(¬x)⊕(¬y).
+    PASS ATS.4.2: ¬(x⋅y)=(¬x)⊗(¬y).
+  ATS.4 Verification Result: true
+
+  ALL CORE ATS AXIOMS (ATS.1-ATS.5) PASSED for case: E⋅E = E (L.11-ATS-v2)
+  Now analyzing distributivity (Property ATS.6)...
+
+  Characterizing NDL for ⋅ over + (Case: E⋅E = E (L.11-ATS-v2))    Distributivity x⋅(y+z)=(x⋅y)+(x⋅z) holds for 97/125 triples.
+    Distributivity FAILS for 28 triples (NDL Members). First few:
+      (0S,1S,A): LHS=0S, RHS=U
+      (0S,1S,E): LHS=U, RHS=0S
+      (0S,A,1S): LHS=0S, RHS=U
+      (0S,A,A): LHS=0S, RHS=U
+      (0S,A,E): LHS=0S, RHS=U
+
+  Characterizing NDL for ⊗ over ⊕ (Case: E⋅E = E (L.11-ATS-v2))    Distributivity x⊗(y⊕z)=(x⊗y)⊕(x⊗z) holds for 97/125 triples.
+    Distributivity FAILS for 28 triples (NDL Members). First few:
+      (0S,0S,0S): LHS=U, RHS=A
+      (0S,0S,1S): LHS=0S, RHS=A
+      (0S,0S,A): LHS=0S, RHS=U
+      (0S,0S,E): LHS=0S, RHS=A
+      (0S,1S,0S): LHS=0S, RHS=A
+
+  Testing CDH for ⋅ over + on S_norm (Case: E⋅E = E (L.11-ATS-v2))    CDH Results (S_norm-closed paths): Total S_norm paths checked = 45
+      - Distributivity HELD for S_norm-closed paths: 33
+      - Distributivity FAILED for S_norm-closed paths (CDH VIOLATIONS): 12
+        Detailed Traces for first few S_norm CDH Failing Triples:
+        Detailed Trace for CDH Failing Triple (A,1S,A) in Case: E⋅E = E (L.11-ATS-v2)
+          LHS = A⋅(1S+A):
+            Step 1: 1S+A = E (from op+ table)
+            Step 2: A⋅E = A (from op⋅ table)
+            Final LHS = A
+          RHS = (A⋅1S)+(A⋅A):
+            Step 1: A⋅1S = A (from op⋅ table)
+            Step 2: A⋅A = A (from op⋅ table)
+            Step 3: A+A = 0S (from op+ table)
+            Final RHS = 0S
+          CONFIRMED DIVERGENCE: LHS (A) != RHS (0S)
+        Detailed Trace for CDH Failing Triple (A,1S,E) in Case: E⋅E = E (L.11-ATS-v2)
+          LHS = A⋅(1S+E):
+            Step 1: 1S+E = A (from op+ table)
+            Step 2: A⋅A = A (from op⋅ table)
+            Final LHS = A
+          RHS = (A⋅1S)+(A⋅E):
+            Step 1: A⋅1S = A (from op⋅ table)
+            Step 2: A⋅E = A (from op⋅ table)
+            Step 3: A+A = 0S (from op+ table)
+            Final RHS = 0S
+          CONFIRMED DIVERGENCE: LHS (A) != RHS (0S)
+        Detailed Trace for CDH Failing Triple (A,A,1S) in Case: E⋅E = E (L.11-ATS-v2)
+          LHS = A⋅(A+1S):
+            Step 1: A+1S = E (from op+ table)
+            Step 2: A⋅E = A (from op⋅ table)
+            Final LHS = A
+          RHS = (A⋅A)+(A⋅1S):
+            Step 1: A⋅A = A (from op⋅ table)
+            Step 2: A⋅1S = A (from op⋅ table)
+            Step 3: A+A = 0S (from op+ table)
+            Final RHS = 0S
+          CONFIRMED DIVERGENCE: LHS (A) != RHS (0S)
+        Detailed Trace for CDH Failing Triple (A,A,E) in Case: E⋅E = E (L.11-ATS-v2)
+          LHS = A⋅(A+E):
+            Step 1: A+E = 1S (from op+ table)
+            Step 2: A⋅1S = A (from op⋅ table)
+            Final LHS = A
+          RHS = (A⋅A)+(A⋅E):
+            Step 1: A⋅A = A (from op⋅ table)
+            Step 2: A⋅E = A (from op⋅ table)
+            Step 3: A+A = 0S (from op+ table)
+            Final RHS = 0S
+          CONFIRMED DIVERGENCE: LHS (A) != RHS (0S)
+        Detailed Trace for CDH Failing Triple (A,E,1S) in Case: E⋅E = E (L.11-ATS-v2)
+          LHS = A⋅(E+1S):
+            Step 1: E+1S = A (from op+ table)
+            Step 2: A⋅A = A (from op⋅ table)
+            Final LHS = A
+          RHS = (A⋅E)+(A⋅1S):
+            Step 1: A⋅E = A (from op⋅ table)
+            Step 2: A⋅1S = A (from op⋅ table)
+            Step 3: A+A = 0S (from op+ table)
+            Final RHS = 0S
+          CONFIRMED DIVERGENCE: LHS (A) != RHS (0S)
+    CDH CONCLUSION: FAILS.
+
+  Testing CDH for ⊗ over ⊕ on S_norm (Case: E⋅E = E (L.11-ATS-v2))    CDH Results (S_norm-closed paths): Total S_norm paths checked = 45
+      - Distributivity HELD for S_norm-closed paths: 33
+      - Distributivity FAILED for S_norm-closed paths (CDH VIOLATIONS): 12
+        Detailed Traces for first few S_norm CDH Failing Triples:
+        Detailed Trace for CDH Failing Triple (0S,0S,1S) in Case: E⋅E = E (L.11-ATS-v2)
+          LHS = 0S⊗(0S⊕1S):
+            Step 1: 0S⊕1S = E (from op⊕ table)
+            Step 2: 0S⊗E = 0S (from op⊗ table)
+            Final LHS = 0S
+          RHS = (0S⊗0S)⊕(0S⊗1S):
+            Step 1: 0S⊗0S = 0S (from op⊗ table)
+            Step 2: 0S⊗1S = 0S (from op⊗ table)
+            Step 3: 0S⊕0S = A (from op⊕ table)
+            Final RHS = A
+          CONFIRMED DIVERGENCE: LHS (0S) != RHS (A)
+        Detailed Trace for CDH Failing Triple (0S,0S,E) in Case: E⋅E = E (L.11-ATS-v2)
+          LHS = 0S⊗(0S⊕E):
+            Step 1: 0S⊕E = 1S (from op⊕ table)
+            Step 2: 0S⊗1S = 0S (from op⊗ table)
+            Final LHS = 0S
+          RHS = (0S⊗0S)⊕(0S⊗E):
+            Step 1: 0S⊗0S = 0S (from op⊗ table)
+            Step 2: 0S⊗E = 0S (from op⊗ table)
+            Step 3: 0S⊕0S = A (from op⊕ table)
+            Final RHS = A
+          CONFIRMED DIVERGENCE: LHS (0S) != RHS (A)
+        Detailed Trace for CDH Failing Triple (0S,1S,0S) in Case: E⋅E = E (L.11-ATS-v2)
+          LHS = 0S⊗(1S⊕0S):
+            Step 1: 1S⊕0S = E (from op⊕ table)
+            Step 2: 0S⊗E = 0S (from op⊗ table)
+            Final LHS = 0S
+          RHS = (0S⊗1S)⊕(0S⊗0S):
+            Step 1: 0S⊗1S = 0S (from op⊗ table)
+            Step 2: 0S⊗0S = 0S (from op⊗ table)
+            Step 3: 0S⊕0S = A (from op⊕ table)
+            Final RHS = A
+          CONFIRMED DIVERGENCE: LHS (0S) != RHS (A)
+        Detailed Trace for CDH Failing Triple (0S,1S,E) in Case: E⋅E = E (L.11-ATS-v2)
+          LHS = 0S⊗(1S⊕E):
+            Step 1: 1S⊕E = 0S (from op⊕ table)
+            Step 2: 0S⊗0S = 0S (from op⊗ table)
+            Final LHS = 0S
+          RHS = (0S⊗1S)⊕(0S⊗E):
+            Step 1: 0S⊗1S = 0S (from op⊗ table)
+            Step 2: 0S⊗E = 0S (from op⊗ table)
+            Step 3: 0S⊕0S = A (from op⊕ table)
+            Final RHS = A
+          CONFIRMED DIVERGENCE: LHS (0S) != RHS (A)
+        Detailed Trace for CDH Failing Triple (0S,E,0S) in Case: E⋅E = E (L.11-ATS-v2)
+          LHS = 0S⊗(E⊕0S):
+            Step 1: E⊕0S = 1S (from op⊕ table)
+            Step 2: 0S⊗1S = 0S (from op⊗ table)
+            Final LHS = 0S
+          RHS = (0S⊗E)⊕(0S⊗0S):
+            Step 1: 0S⊗E = 0S (from op⊗ table)
+            Step 2: 0S⊗0S = 0S (from op⊗ table)
+            Step 3: 0S⊕0S = A (from op⊕ table)
+            Final RHS = A
+          CONFIRMED DIVERGENCE: LHS (0S) != RHS (A)
+    CDH CONCLUSION: FAILS.
+
+
+==============================================================================
+   TESTING MULTIPLICATION CASE: E⋅E = U
+==============================================================================
+
+--- Initial Property Checks for (⋅) and Associativity Test ---
+  Verifying ATS.5 (Synthesis & Specific Interactions for ⋅) for Case: E⋅E = U    PASS ATS.5.1: 0S⋅A=U.
+    PASS ATS.5.2: Conditional 0S-annihilation on S_norm.
+    PASS ATS.5.3: Conditional A-absorption on S_norm.
+  ATS.5 Verification Result: true
+  PASS: ⋅ is Commutative for all 25 pairs.
+  PASS: 1S is two-sided identity for ⋅ on tested elements.
+  PASS: U is two-sided absorber for ⋅ on tested elements.
+  FAIL: ⋅ is NOT Associative. (Case: E⋅E = U). Found 4 failing triples. E.g.:
+"
+
+
+
+
+
